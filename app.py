@@ -174,6 +174,49 @@ cash = max(total_assets - mv_sum, 0.0)
 # 页面标题 + 状态
 # =============================
 st.title("📈 我的A股持仓看板（云端版）")
+# ===== 今日简报（自动生成）=====
+def load_daily_brief():
+    try:
+        with open("daily_brief.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return None
+
+brief = load_daily_brief()
+if brief:
+    st.subheader("🗞️ 今日开盘前简报")
+    colA, colB = st.columns([1,1])
+    with colA:
+        st.markdown(f"""
+        <div class="ios-card">
+          <div class="kpi-title">生成时间</div>
+          <div class="kpi-value">{brief.get("generated_at","—")}</div>
+          <div class="kpi-sub">开盘前自动更新</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    p = brief.get("portfolio", {})
+    with colB:
+        st.markdown(f"""
+        <div class="ios-card">
+          <div class="kpi-title">组合概览</div>
+          <div class="kpi-value">{money(p.get("today_pnl_rmb",0))}（今日）</div>
+          <div class="kpi-sub">总盈亏 {money(p.get("total_pnl_rmb",0))} · 总收益率 {pct(p.get("overall_return",0) or 0)}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    tips = brief.get("risk_tips", [])
+    if tips:
+        with st.expander("⚠️ 风险提示", expanded=True):
+            for t in tips:
+                st.write("• " + t)
+
+    with st.expander("📌 今日策略（建议）", expanded=True):
+        for s in brief.get("strategy", []):
+            st.write("• " + s)
+
+else:
+    st.info("今日简报尚未生成：请稍后等待定时任务，或在 GitHub Actions 手动 Run workflow 一次。")
 st.caption("说明：今日盈亏基于昨收；总盈亏基于成本价。百分比均显示为 30% 形式。")
 
 if err:
@@ -291,3 +334,4 @@ with right:
     st.markdown('</div>', unsafe_allow_html=True)
 
 st.caption("更新时间：" + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
