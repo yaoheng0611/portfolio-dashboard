@@ -1,0 +1,39 @@
+name: Daily Brief
+
+on:
+  schedule:
+    # 每天北京时间 08:40 运行（UTC 00:40）
+    - cron: "40 0 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-brief:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Generate daily brief
+        run: |
+          python scripts/generate_daily_brief.py
+
+      - name: Commit daily_brief.json
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add daily_brief.json
+          git commit -m "chore: update daily brief" || echo "No changes"
+          git push
